@@ -22,5 +22,18 @@ export default defineConfig(({mode}) => {
       allowedHosts: true,
       hmr: process.env.DISABLE_HMR !== 'true',
     },
+    build: {
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ['react', 'react-dom', 'react-router-dom'],
+            motion: ['motion'],
+            supabase: ['@supabase/supabase-js'],
+            icons: ['lucide-react'],
+          },
+        },
+      },
+    },
   };
 });

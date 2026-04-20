@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
 import {
@@ -659,6 +659,7 @@ function ImageCell({
   url: string;
   onChange: (f: File) => void;
   wide?: boolean;
+  key?: React.Key;
 }) {
   return (
     <div

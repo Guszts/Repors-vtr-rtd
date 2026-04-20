@@ -1,4 +1,5 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import type { ReactNode } from "react";
 import { X, Mail, Lock, User as UserIcon } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "../../context/AuthContext";

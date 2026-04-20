@@ -1,3 +1,4 @@
+import React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
@@ -252,6 +253,7 @@ function FilterChip({
   active: boolean;
   onClick: () => void;
   testId: string;
+  key?: React.Key;
 }) {
   return (
     <button
