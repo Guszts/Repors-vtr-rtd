@@ -23,6 +23,14 @@ export default function ProductDetail() {
 
   useEffect(() => {
     if (!id) return;
+    // Only hit Supabase for UUID-shaped ids (Supabase products use uuid)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    if (!isUuid) {
+      setIngredients([]);
+      setSelected({});
+      setLoading(false);
+      return;
+    }
     (async () => {
       setLoading(true);
       const { data } = await supabase

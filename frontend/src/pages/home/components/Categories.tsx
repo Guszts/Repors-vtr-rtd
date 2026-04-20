@@ -7,14 +7,14 @@ const categories = [
   { id: "carnes", name: "Carnes no Kilo", desc: "Churrasco no ponto", icon: Beef, color: "text-amber-600" },
   { id: "bebidas", name: "Bebidas", desc: "Geladas e sucos", icon: CupSoda, color: "text-orange-500" },
   { id: "sobremesas", name: "Sobremesas", desc: "O doce perfeito", icon: Cake, color: "text-pink-500" },
-  { id: "pastel", name: "Pastel", desc: "Sequinho e recheado", icon: Pizza, color: "text-yellow-500" }, // Using Pizza/PizzaSlice as standard fallback for snacks if no Pastel exists
+  { id: "pastel", name: "Pastel", desc: "Sequinho e recheado", icon: Pizza, color: "text-yellow-500" },
 ];
 
 export default function Categories() {
   return (
     <section className="bg-white py-24 px-6 lg:px-8 relative z-30">
       <div className="max-w-7xl mx-auto">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-100px" }}
@@ -26,7 +26,7 @@ export default function Categories() {
             Comida caseira com <br className="hidden md:block"/>
             <span className="text-red-600">sabor de verdade</span>
           </h2>
-          
+
           <div className="mt-8 inline-flex flex-wrap justify-center items-center gap-4 text-sm font-medium text-stone-600 bg-stone-100 rounded-full px-6 py-3 border border-stone-200">
             <span>Av Brasil, 1020 - Centro</span>
             <span className="hidden md:inline text-stone-300">/</span>
@@ -40,13 +40,13 @@ export default function Categories() {
           {categories.map((cat, i) => {
             const Icon = cat.icon;
             return (
-                <a
-                  href="#cardapio"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    document.getElementById('cardapio')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  key={cat.id}
+              <motion.a
+                href="#cardapio"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('cardapio')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                key={cat.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-50px" }}
@@ -58,7 +58,7 @@ export default function Categories() {
                 </div>
                 <h3 className="font-bold text-stone-900 group-hover:text-red-600 transition-colors text-center">{cat.name}</h3>
                 <p className="text-xs text-stone-500 text-center mt-1">{cat.desc}</p>
-              </a>
+              </motion.a>
             )
           })}
         </div>

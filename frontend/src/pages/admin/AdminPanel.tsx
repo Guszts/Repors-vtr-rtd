@@ -14,6 +14,8 @@ import {
   Settings2,
   Sparkles,
   Wand2,
+  Star,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useAppContext } from "../../context/AppContext";
@@ -21,7 +23,7 @@ import { supabase, BACKEND_URL } from "../../lib/supabase";
 import type { Ingredient, Product, Profile, AppSettings } from "../../lib/types";
 import { cn } from "../../lib/utils";
 
-type Tab = "produtos" | "imagens" | "usuarios" | "metricas" | "ajustes";
+type Tab = "produtos" | "imagens" | "usuarios" | "metricas" | "ajustes" | "depoimentos";
 
 export default function AdminPanel() {
   const { isAdmin } = useAuth();
@@ -68,6 +70,7 @@ export default function AdminPanel() {
           {[
             { id: "produtos", label: "Produtos", icon: Utensils },
             { id: "imagens", label: "Imagens", icon: ImageIcon },
+            { id: "depoimentos", label: "Depoimentos", icon: Star },
             { id: "usuarios", label: "Usuários", icon: Users },
             { id: "metricas", label: "Métricas", icon: BarChart3 },
             { id: "ajustes", label: "Ajustes", icon: Settings2 },
@@ -95,6 +98,7 @@ export default function AdminPanel() {
       <main className="max-w-7xl mx-auto px-5 py-6">
         {tab === "produtos" && <ProductsTab products={products} refresh={refreshProducts} />}
         {tab === "imagens" && <ImagesTab />}
+        {tab === "depoimentos" && <TestimonialsTab />}
         {tab === "usuarios" && <UsersTab />}
         {tab === "metricas" && <MetricsTab />}
         {tab === "ajustes" && <SettingsTab settings={settings} save={saveSettings} />}
@@ -818,6 +822,157 @@ function MetricsTab() {
 // ------------------------------------------------------------
 // SETTINGS
 // ------------------------------------------------------------
+// ------------------------------------------------------------
+// TESTIMONIALS (admin)
+// ------------------------------------------------------------
+function TestimonialsTab() {
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [aiReplying, setAiReplying] = useState<string | null>(null);
+  const [replies, setReplies] = useState<Record<string, string>>({});
+
+  const load = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("testimonials")
+      .select(
+        "id, user_id, rating, content, created_at, profiles!inner(nickname, full_name, username, avatar_url, email)"
+      )
+      .order("created_at", { ascending: false });
+    setRows((data as any[]) || []);
+    setLoading(false);
+  };
+  useEffect(() => {
+    load();
+  }, []);
+
+  const remove = async (id: string) => {
+    if (!confirm("Excluir este depoimento? Essa ação não pode ser desfeita.")) return;
+    const { error } = await supabase.from("testimonials").delete().eq("id", id);
+    if (error) return alert(error.message);
+    await load();
+  };
+
+  const aiReply = async (t: any) => {
+    setAiReplying(t.id);
+    try {
+      const r = await fetch(`${BACKEND_URL}/api/ai/reply-testimonial`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          author: t.profiles?.nickname || t.profiles?.full_name || "Cliente",
+          rating: t.rating,
+          content: t.content,
+        }),
+      });
+      const j = await r.json();
+      if (j.reply) setReplies((p) => ({ ...p, [t.id]: j.reply }));
+    } catch (e) {
+      alert("Falha ao gerar resposta.");
+    }
+    setAiReplying(null);
+  };
+
+  return (
+    <div data-testid="admin-testimonials">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-black text-stone-900">Depoimentos</h2>
+        <button
+          onClick={load}
+          className="text-xs font-bold bg-stone-100 hover:bg-stone-200 rounded-full px-3 py-1.5"
+        >
+          Recarregar
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="text-stone-500 font-medium text-center py-8">Carregando...</p>
+      ) : rows.length === 0 ? (
+        <p className="text-stone-500 font-medium text-center py-8">Nenhum depoimento ainda.</p>
+      ) : (
+        <div className="grid gap-3">
+          {rows.map((t) => {
+            const author = t.profiles || {};
+            return (
+              <div
+                key={t.id}
+                className="bg-white rounded-3xl border border-stone-100 p-5"
+                data-testid={`admin-testimonial-${t.id}`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-full bg-red-600 text-white font-black flex items-center justify-center overflow-hidden">
+                    {author.avatar_url ? (
+                      <img src={author.avatar_url} className="w-full h-full object-cover" />
+                    ) : (
+                      (author.nickname || author.full_name || "?")[0]?.toUpperCase()
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-stone-900 truncate">
+                      {author.nickname || author.full_name || "Cliente"}
+                    </p>
+                    <p className="text-xs text-stone-500 font-medium truncate">
+                      @{author.username || "usuario"} · {author.email}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        className={cn(
+                          "w-4 h-4",
+                          i < t.rating ? "text-amber-400 fill-amber-400" : "text-stone-200"
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+                {t.content ? (
+                  <p className="text-stone-700 leading-relaxed text-sm">"{t.content}"</p>
+                ) : (
+                  <p className="text-stone-400 italic text-sm font-medium">
+                    Sem comentário — apenas avaliação em estrelas.
+                  </p>
+                )}
+                <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mt-3">
+                  {new Date(t.created_at).toLocaleString("pt-BR")}
+                </p>
+                {replies[t.id] && (
+                  <div className="mt-3 bg-stone-50 border border-stone-100 rounded-2xl p-3">
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-stone-500 mb-1">
+                      Sugestão de resposta (IA)
+                    </p>
+                    <p className="text-sm text-stone-800 font-medium">{replies[t.id]}</p>
+                  </div>
+                )}
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => aiReply(t)}
+                    disabled={aiReplying === t.id}
+                    data-testid={`admin-testimonial-reply-${t.id}`}
+                    className="bg-violet-100 text-violet-700 font-bold text-xs rounded-full px-3 py-2 flex items-center gap-1 disabled:opacity-60"
+                  >
+                    <MessageCircle className="w-3 h-3" />
+                    {aiReplying === t.id ? "Gerando..." : "Sugerir resposta (IA)"}
+                  </button>
+                  <button
+                    onClick={() => remove(t.id)}
+                    data-testid={`admin-testimonial-delete-${t.id}`}
+                    className="bg-red-50 text-red-600 font-bold text-xs rounded-full px-3 py-2 flex items-center gap-1 hover:bg-red-100"
+                  >
+                    <Trash2 className="w-3 h-3" /> Excluir
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 function SettingsTab({
   settings,
   save,

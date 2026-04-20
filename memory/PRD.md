@@ -82,7 +82,16 @@ Atualizar o app do **Restaurante e Marmitaria Vitória** (sem mudar design/tipog
 - Frontend: 100% (após fix FK) — login admin+cliente, navegação entre abas, carrinho local, perfil, admin panel (5 abas), depoimentos listando corretamente
 
 ### Pendências (do usuário, opcional)
-1. **Google OAuth próprio**: criar credenciais no Google Cloud + configurar em Supabase > Authentication > Providers > Google (instruções em `/app/SETUP.md` e na conversa). Enquanto não configurado, botão Google mostra erro explicativo.
+1. **Google OAuth próprio**: siga `/app/GOOGLE_OAUTH_SETUP.md` (passo-a-passo completo com suas credenciais). Enquanto não configurado, botão Google mostra erro explicativo.
+2. **Deploy Vercel**: siga `/app/VERCEL_DEPLOY.md` (Root Dir `frontend`, `npm run build`, `dist`, env vars listadas).
+
+### Atualizações 20/04/2026
+- **Migrado de yarn → npm**: `package-lock.json` gerado, `yarn.lock` removido, `.gitignore` exclui yarn.lock
+- **Categories.tsx**: corrigido warning React `whileInView` em `<a>` → agora `motion.a`
+- **ProductDetail**: só consulta `product_ingredients` quando `id` for UUID válido (evita 400 em ids legacy)
+- **Admin**: nova aba **"Depoimentos"** — lista, exclui, gera resposta com IA (Emergent LLM Key)
+- **vercel.json** criado com rewrites SPA + headers corretos de cache e `manifest+json`
+- Docs: `/app/GOOGLE_OAUTH_SETUP.md` (com tabela de erros comuns) e `/app/VERCEL_DEPLOY.md`
 
 ## Backlog / Próximas evoluções
 - [P1] Realtime subscriptions para atualizar pedidos e depoimentos ao vivo
