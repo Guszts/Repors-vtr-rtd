@@ -1,79 +1,89 @@
-# Vitória — Deploy no Vercel
+# Vitória — Deploy no Vercel (com Services)
 
-> O Vercel hospeda só o **frontend** (Vite/React). O backend FastAPI roda em outro lugar (Railway, Render, Fly.io). Como o backend só tem endpoints de IA (opcional), o app funciona 100% sem ele — mas aí o admin perde os botões de "IA desc" / "IA badge" / "IA reply".
+> Este projeto usa a feature **`experimentalServices`** do Vercel — deploya **frontend e backend juntos num único projeto**, no mesmo domínio. Config validada contra `https://vercel.com/docs/services`.
 
----
+## Estrutura no repositório
 
-## 1. Subir o projeto para o GitHub
+```
+/
+├── vercel.json                    ← Services config (na raiz)
+├── frontend/                      ← Vite + React (entrypoint: "frontend")
+│   ├── src/...
+│   ├── package.json
+│   └── .env                       ← não commitar (ignorado em .gitignore)
+└── backend/                       ← FastAPI (entrypoint: "backend")
+    ├── server.py                  ← app = FastAPI()
+    ├── requirements.txt
+    └── .env                       ← não commitar
+```
 
-1. No chat Emergent, clique **"Save to GitHub"** → autorize → escolha nome (ex: `vitoria-app`).
-2. Após o push, você terá um repo tipo `https://github.com/seu-usuario/vitoria-app`.
+`/app/vercel.json`:
+```json
+{
+  "experimentalServices": {
+    "frontend": { "entrypoint": "frontend", "routePrefix": "/",           "framework": "vite" },
+    "backend":  { "entrypoint": "backend",  "routePrefix": "/_/backend" }
+  }
+}
+```
 
----
+## 1. Subir pro GitHub
+
+No chat Emergent → **"Save to GitHub"** → autoriza → nomeia o repo (ex: `vitoria-app`).
 
 ## 2. Importar no Vercel
 
-1. Acesse https://vercel.com/new
-2. Selecione o repositório `vitoria-app`.
-3. Em **"Root Directory"** clique **Edit** e escolha `frontend` (seu código frontend está em `/frontend`).
-4. Framework preset: o Vercel detecta **Vite** automaticamente.
+1. https://vercel.com/new → importa o repositório.
+2. **Framework Preset** → escolha **"Services"** (essa é a condição nova; sem isso o `experimentalServices` é ignorado).
+3. **Root Directory**: deixe na raiz (`.`). Não selecione `frontend/` — o próprio vercel.json aponta para os serviços.
+4. Não precisa preencher Build Command / Output Directory (cada serviço detecta sozinho).
 
-### Build & Output (o Vercel preenche, só confirme)
+## 3. Environment Variables
 
-| Campo              | Valor            |
-| ------------------ | ---------------- |
-| Framework          | Vite             |
-| Build Command      | `npm run build`  |
-| Output Directory   | `dist`           |
-| Install Command    | `npm install`    |
-| Development Command| `npm run dev`    |
+**Production, Preview e Development**, todas:
 
-> O arquivo `/frontend/vercel.json` já está configurado com rewrites SPA, headers de cache e content-type correto do manifest PWA. Nada mais a fazer.
+| Key                      | Value                                                                       | Onde                    |
+| ------------------------ | --------------------------------------------------------------------------- | ----------------------- |
+| `VITE_SUPABASE_URL`      | `https://uuovdyvfoufjmlnmhzse.supabase.co`                                  | frontend (build-time)   |
+| `VITE_SUPABASE_ANON_KEY` | (copie do Supabase Settings → API)                                          | frontend (build-time)   |
+| `VITE_ADMIN_EMAIL`       | `gustavomonteiro09g@gmail.com`                                              | frontend (build-time)   |
+| `VITE_BACKEND_URL`       | `/_/backend`                                                                | frontend (**mudou!**)   |
+| `REACT_APP_BACKEND_URL`  | `/_/backend`                                                                | frontend (alias)        |
+| `EMERGENT_LLM_KEY`       | `sk-emergent-7Ea75A099F5FfEc8fE`                                            | backend (runtime)       |
+| `CORS_ORIGINS`           | `*`                                                                         | backend (runtime)       |
 
----
-
-## 3. Environment Variables (no painel do Vercel)
-
-Settings → Environment Variables. Adicione para **Production + Preview + Development**:
-
-| Key                         | Value                                                               |
-| --------------------------- | ------------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`         | `https://uuovdyvfoufjmlnmhzse.supabase.co`                          |
-| `VITE_SUPABASE_ANON_KEY`    | (a anon key que você copiou do Supabase > Settings > API)           |
-| `VITE_ADMIN_EMAIL`          | `gustavomonteiro09g@gmail.com`                                      |
-| `VITE_BACKEND_URL`          | URL do backend FastAPI (ex: `https://vitoria-api.onrender.com`) — deixe em branco se ainda não deployou backend |
-| `REACT_APP_BACKEND_URL`     | mesmo valor que `VITE_BACKEND_URL` (alias por segurança)            |
-
-> ⚠️ **Nunca** coloque a `SERVICE_ROLE_KEY` nem o `PAT` do Supabase aqui — essas são chaves server-only e não vão para o frontend.
-
----
+> ⚠️ **Nunca** commite a `SERVICE_ROLE_KEY` nem o `PAT` do Supabase aqui — são chaves server-only e não vão para o Vercel.
 
 ## 4. Deploy
 
-Clique em **Deploy**. Em ~1 minuto você tem uma URL tipo `https://vitoria-app.vercel.app`.
+Clique **Deploy**. Em ~2-3 min o Vercel constrói os dois serviços e te dá uma URL tipo `https://vitoria-app.vercel.app` onde:
+- `/` → frontend Vite
+- `/_/backend/api/health` → FastAPI responde
+- `/_/backend/api/ai/describe` → endpoint de IA funciona
 
-Depois de pronto:
-- Em **Domains** configure seu domínio custom (ex: `vitoria.com.br`) — o Vercel gera DNS records pra você apontar.
-- Em **Supabase > Authentication > URL Configuration** adicione seu domínio Vercel (e o custom) em:
-  - **Site URL:** `https://vitoria.com.br` (ou o `.vercel.app`)
-  - **Redirect URLs:** `https://vitoria.com.br/**` (o `**` cobre todas as rotas)
-- Em **Google Cloud Console** (se usar Google Auth) adicione os mesmos domínios em Authorized JavaScript origins — veja `GOOGLE_OAUTH_SETUP.md`.
+## 5. Domínio custom
 
----
+Em **Settings → Domains** adicione seu domínio (ex: `vitoria.com.br`). O Vercel te dá os DNS records (CNAME ou A+AAAA) para apontar no seu registrador.
 
-## 5. (Opcional) Deploy do backend FastAPI
+Depois de ativar o domínio, atualize também:
+1. **Supabase → Authentication → URL Configuration** → Site URL e Redirect URLs com `https://vitoria.com.br` e `https://vitoria.com.br/**`
+2. **Google Cloud Console → OAuth client → Authorized JavaScript origins** → `https://vitoria.com.br` (passo completo em `/app/GOOGLE_OAUTH_SETUP.md`)
 
-Se quiser os endpoints de IA funcionando:
+## 6. Rodar local com o Vercel CLI
 
-**Render.com** (grátis até 750h/mês):
-1. https://render.com/ → New → **Web Service**
-2. Connect o mesmo repositório
-3. Root Directory: `backend`
-4. Build Command: `pip install -r requirements.txt`
-5. Start Command: `uvicorn server:app --host 0.0.0.0 --port $PORT`
-6. Env vars:
-   - `EMERGENT_LLM_KEY` = `sk-emergent-7Ea75A099F5FfEc8fE`
-   - (MONGO_URL e DB_NAME não são usadas — o backend atual não precisa de Mongo)
-7. Pegue a URL (ex: `https://vitoria-api.onrender.com`) e atualize `VITE_BACKEND_URL` no Vercel → Redeploy frontend.
+```bash
+npm i -g vercel
+cd /seu-repo
+vercel dev -L
+```
 
-**Railway**, **Fly.io** e **Cloud Run** funcionam igual.
+`-L` local (sem autenticar na Vercel Cloud). Os dois serviços sobem no mesmo domínio local: `http://localhost:3000` (frontend) e `http://localhost:3000/_/backend/api/health` (backend).
+
+## Troubleshooting
+
+| Erro                                                | Causa                                                             | Fix                                                               |
+| --------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `experimentalServices` ignorado, deploy sem backend | Framework Preset não é "Services"                                 | Settings → General → Framework Preset = **Services** → Redeploy   |
+| Backend 404 em `/_/backend/api/health`              | Python/FastAPI não detectado                                      | Garanta `backend/requirements.txt` com `fastapi` e `backend/server.py` com `app = FastAPI(...)` |
+| `emergentintegrations` falha na build do backend    | Índice PyPI padrão não tem o pacote                               | `backend/requirements.txt` já inclui `--extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/` — mantenha |
+| Frontend bate em `/api/ai/*` e dá 404               | `VITE_BACKEND_URL` não está apontando para `/_/backend`           | Settings → Env vars → `VITE_BACKEND_URL=/_/backend` → Redeploy    |
